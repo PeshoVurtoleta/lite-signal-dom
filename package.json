@@ -1,0 +1,76 @@
+{
+  "name": "@zakkster/lite-signal-dom",
+  "version": "1.0.1",
+  "description": "Zero-GC, vanilla-first reactive DOM bindings for @zakkster/lite-signal. No virtual DOM, no compiler, no build step. Fine-grained text/attr/prop/class/style/show/event bindings plus an ECS-style keyed list reconciler with node pooling. 0 bytes allocated per update.",
+  "author": "Zahary Shinikchiev <shinikchiev@yahoo.com>",
+  "license": "MIT",
+  "type": "module",
+  "main": "./SignalDom.js",
+  "module": "./SignalDom.js",
+  "types": "./SignalDom.d.ts",
+  "exports": {
+    ".": {
+      "types": "./SignalDom.d.ts",
+      "node": "./SignalDom.js",
+      "import": "./SignalDom.js",
+      "default": "./SignalDom.js"
+    }
+  },
+  "files": [
+    "SignalDom.js",
+    "SignalDom.d.ts",
+    "README.md",
+    "llms.txt",
+    "LICENSE.txt"
+  ],
+  "scripts": {
+    "test": "node --test --test-reporter=spec",
+    "test:gc": "node --expose-gc --test --test-reporter=spec",
+    "bench": "node --expose-gc bench/bench.js",
+    "verify": "npm run test:gc && npm run bench",
+    "demo": "node -e \"console.log('Open example/demo.html in any browser')\""
+  },
+  "keywords": [
+    "signal",
+    "signals",
+    "reactive",
+    "reactivity",
+    "dom",
+    "dom-bindings",
+    "fine-grained",
+    "no-vdom",
+    "no-virtual-dom",
+    "keyed-list",
+    "reconciler",
+    "node-pool",
+    "object-pool",
+    "zero-gc",
+    "zero-allocation",
+    "performance",
+    "vanilla",
+    "lite-signal",
+    "twitch",
+    "overlay",
+    "canvas",
+    "game"
+  ],
+  "dependencies": {
+    "@zakkster/lite-signal": "^1.1.1"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  },
+  "homepage": "https://github.com/PeshoVurtoleta/lite-signal-dom#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PeshoVurtoleta/lite-signal-dom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/PeshoVurtoleta/lite-signal-dom/issues",
+    "email": "shinikchiev@yahoo.com"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": false
+}

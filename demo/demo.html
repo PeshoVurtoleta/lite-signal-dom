@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>lite-signal-dom · reconciler scope</title>
+    <script>var LR = (() => {
+        var ce = Object.defineProperty;
+        var Ne = Object.getOwnPropertyDescriptor;
+        var Pe = Object.getOwnPropertyNames;
+        var qe = Object.prototype.hasOwnProperty;
+        var Ie = (n, s) => {
+            for (var c in s) ce(n, c, {get: s[c], enumerable: !0})
+        }, Ge = (n, s, c, o) => {
+            if (s && typeof s == "object" || typeof s == "function") for (let a of Pe(s)) !qe.call(n, a) && a !== c && ce(n, a, {
+                get: () => s[a],
+                enumerable: !(o = Ne(s, a)) || o.enumerable
+            });
+            return n
+        };
+        var Re = n => Ge(ce({}, "__esModule", {value: !0}), n);
+        var ut = {};
+        Ie(ut, {
+            CapacityError: () => U,
+            batch: () => je,
+            bindAttr: () => Xe,
+            bindClass: () => et,
+            bindHTMLUnsafe: () => We,
+            bindOn: () => rt,
+            bindProp: () => Ye,
+            bindShow: () => nt,
+            bindStyle: () => tt,
+            bindText: () => Ke,
+            computed: () => Ue,
+            createRegistry: () => ye,
+            destroy: () => Ze,
+            dispose: () => He,
+            effect: () => M,
+            keyed: () => st,
+            onCleanup: () => ze,
+            setDefaultRegistry: () => Me,
+            signal: () => Qe,
+            stats: () => $e,
+            untrack: () => Q,
+            watch: () => De,
+            when: () => fe,
+            whenAsync: () => me
+        });
+        var be = Symbol("watch.uninitialized");
+
+        function De(n, s, c) {
+            let o = c !== void 0 && c.immediate === !0, a = be, p, S = null, V = !1, v = () => {
+                S !== null ? S() : V = !0
+            }, A = () => {
+                a === be ? o && s(p, void 0, v) : Object.is(p, a) || s(p, a, v), a = p
+            };
+            return S = M(() => {
+                p = n(), Q(A)
+            }), V && S(), v
+        }
+
+        function fe(n, s) {
+            let c = null, o = !1, a = !1, p = () => {
+                c !== null ? c() : o = !0
+            };
+            return c = M(() => {
+                a || n() && (a = !0, Q(s), p())
+            }), o && c(), p
+        }
+
+        function me(n) {
+            return new Promise(s => fe(n, s))
+        }
+
+        var $ = 1, Z = 2, J = 4, G = 8, K = 16, Se = 32, W = class {
+            constructor() {
+                this.flags = 0, this.value = void 0, this.computeFn = void 0, this.cleanupFn = void 0, this.equals = void 0, this.scheduler = void 0, this.version = 0, this.evalVersion = 0, this.markEpoch = 0, this.gen = 0, this.preBatchValue = void 0, this.preBatchVersion = 0, this.revertEpoch = 0, this.headDep = null, this.tailDep = null, this.currentDep = null, this.headSub = null, this.tailSub = null, this.nextFree = null
+            }
+        }, X = class {
+            constructor() {
+                this.source = null, this.target = null, this.prevDep = null, this.nextDep = null, this.prevSub = null, this.nextSub = null, this.nextFree = null
+            }
+        }, U = class extends Error {
+            constructor(s, c) {
+                super(`CapacityError: ${s} capacity (${c}) exceeded.`), this.name = "CapacityError", this.kind = s, this.capacity = c
+            }
+        };
+
+        function ye(n = {}) {
+            let s = Symbol("node_ptr"), c = Symbol("node_gen"), o = n.maxNodes || 1024, a = n.maxLinks || o * 4,
+                p = n.onCapacityExceeded || "throw", S = n.maxFlushPasses || 100, V = a * 16, v = [];
+            for (let e = 0; e < o; e++) v[e] = new W;
+            let A = v[0];
+            for (let e = 0; e < o - 1; e++) v[e].nextFree = v[e + 1];
+            let y = [];
+            for (let e = 0; e < a; e++) y[e] = new X;
+            let h = y[0];
+            for (let e = 0; e < a - 1; e++) y[e].nextFree = y[e + 1];
+            let w = 0, D = 0, b = 0, C = 0, g = 0, R = [], ee = [], H = [];
+            for (let e = 0; e < o; e++) R[e] = null, ee[e] = null, H[e] = null;
+            let te = R, I = 0, ne = !0, E = 1, _ = 1, x = null, L = null, B = 0, m = !1, j = !1, N = [], F = 0;
+
+            function pe(e, l) {
+                let t = L;
+                if (t !== null && t.source === e) return L = t.nextDep, t;
+                let r = l.headDep, i = null;
+                for (; r !== null;) {
+                    if (r.source === e) {
+                        i = r;
+                        break
+                    }
+                    r = r.nextDep
+                }
+                let u;
+                if (i !== null) {
+                    u = i;
+                    let f = u.prevDep, d = u.nextDep;
+                    f !== null ? f.nextDep = d : l.headDep = d, d !== null ? d.prevDep = f : l.tailDep = f
+                } else {
+                    if (h === null) {
+                        if (p === "throw") throw new U("links", a);
+                        let f = a * 2;
+                        if (f > V) throw new U("links", V);
+                        let d = new Array(f - a);
+                        for (let k = 0; k < d.length; k++) d[k] = new X;
+                        for (let k = 0; k < d.length - 1; k++) d[k].nextFree = d[k + 1];
+                        let O = y.length;
+                        y.length = f;
+                        for (let k = 0; k < d.length; k++) y[O + k] = d[k];
+                        h = d[0], a = f
+                    }
+                    u = h, h = u.nextFree, u.nextFree = null, D = D + 1 | 0, u.source = e, u.target = l, u.nextSub = null, u.prevSub = e.tailSub, e.tailSub !== null ? e.tailSub.nextSub = u : e.headSub = u, e.tailSub = u
+                }
+                if (u.nextDep = t, t !== null) {
+                    let f = t.prevDep;
+                    u.prevDep = f, t.prevDep = u, f !== null ? f.nextDep = u : l.headDep = u
+                } else {
+                    let f = l.tailDep;
+                    u.prevDep = f, f !== null ? f.nextDep = u : l.headDep = u, l.tailDep = u
+                }
+                return u
+            }
+
+            function he(e, l, t) {
+                let r = e.prevSub, i = e.nextSub;
+                r !== null ? r.nextSub = i : t.headSub = i, i !== null ? i.prevSub = r : t.tailSub = r, e.source = null, e.target = null, e.prevDep = null, e.nextDep = null, e.prevSub = null, e.nextSub = null, e.nextFree = h, h = e, D = D - 1 | 0
+            }
+
+            function de(e) {
+                if (e.flags === 0) return;
+                re(e);
+                let l = e.headDep;
+                for (; l !== null;) {
+                    let r = l.nextDep;
+                    he(l, e, l.source), l = r
+                }
+                let t = e.headSub;
+                for (; t !== null;) {
+                    let r = t.target, i = t.nextSub, u = t.prevDep, f = t.nextDep;
+                    u !== null ? u.nextDep = f : r.headDep = f, f !== null ? f.prevDep = u : r.tailDep = u, t.source = null, t.target = null, t.prevDep = null, t.nextDep = null, t.prevSub = null, t.nextSub = null, t.nextFree = h, h = t, D = D - 1 | 0, t = i
+                }
+                e.computeFn = void 0, e.cleanupFn = void 0, e.scheduler = void 0, e.value = void 0, e.equals = void 0, e.flags = 0, e.headDep = null, e.tailDep = null, e.currentDep = null, e.headSub = null, e.tailSub = null, e.revertEpoch = 0, e.preBatchValue = void 0, e.preBatchVersion = 0, e.gen = e.gen + 1 | 0, e.nextFree = A, A = e, w = w - 1 | 0
+            }
+
+            function le(e, l) {
+                if (A === null) {
+                    if (p === "throw") throw new U("nodes", o);
+                    let r = o * 2, i = new Array(r - o);
+                    for (let f = 0; f < i.length; f++) i[f] = new W;
+                    for (let f = 0; f < i.length - 1; f++) i[f].nextFree = i[f + 1];
+                    let u = v.length;
+                    v.length = r;
+                    for (let f = 0; f < i.length; f++) v[u + f] = i[f];
+                    A = i[0], R.length = r, ee.length = r, H.length = r, o = r
+                }
+                let t = A;
+                return A = t.nextFree, t.nextFree = null, w = w + 1 | 0, t.value = e, t.flags = l | 0, t.headDep = null, t.tailDep = null, t.currentDep = null, t.headSub = null, t.tailSub = null, t.version = 0, t.evalVersion = 0, t.markEpoch = 0, t.revertEpoch = 0, t.preBatchValue = void 0, t.preBatchVersion = 0, t
+            }
+
+            function re(e) {
+                let l = e.cleanupFn;
+                if (l === void 0) return;
+                let t = x, r = m;
+                x = null, m = !1;
+                try {
+                    if (typeof l == "function") l(); else for (let i = 0; i < l.length; i++) l[i]()
+                } finally {
+                    e.cleanupFn = void 0, x = t, m = r
+                }
+            }
+
+            function Ce(e) {
+                let l = 0;
+                for (H[l] = e, l = l + 1 | 0; l > 0;) {
+                    l = l - 1 | 0;
+                    let r = H[l].headSub;
+                    for (; r !== null;) {
+                        let i = r.target;
+                        if ((i.markEpoch | 0) !== (E | 0)) {
+                            i.markEpoch = E | 0;
+                            let u = i.flags | 0;
+                            (u & Z) !== 0 ? (u & J) === 0 && (u & G) === 0 && (i.flags = u | J, te[I] = i, I = I + 1 | 0) : (H[l] = i, l = l + 1 | 0)
+                        }
+                        r = r.nextSub
+                    }
+                }
+            }
+
+            function ve(e, l) {
+                (e.gen | 0) === (l | 0) && (e.flags & Z) !== 0 && se(e)
+            }
+
+            function ge() {
+                if (j) return;
+                j = !0;
+                let e = 0, l = !1;
+                try {
+                    for (; I > 0;) {
+                        if (e = e + 1 | 0, e > S) throw new Error("CycleError: flush passes exceeded");
+                        let t = I | 0, r = te;
+                        ne = !ne, te = ne ? R : ee, I = 0;
+                        for (let i = 0; i < t; i++) {
+                            let u = r[i];
+                            try {
+                                let f = u.scheduler;
+                                if (f) {
+                                    let d = u.gen | 0;
+                                    f(() => ve(u, d))
+                                } else se(u)
+                            } catch (f) {
+                                N[F] = f, F = F + 1 | 0
+                            }
+                        }
+                    }
+                    l = !0
+                } finally {
+                    if (j = !1, !l) {
+                        for (let t = 0; t < F; t++) N[t] = null;
+                        F = 0
+                    }
+                }
+                if (F > 0) {
+                    if (F === 1) {
+                        let r = N[0];
+                        throw N[0] = null, F = 0, r
+                    }
+                    let t = N.slice(0, F);
+                    for (let r = 0; r < F; r++) N[r] = null;
+                    throw F = 0, new AggregateError(t, "Effects threw during flush")
+                }
+            }
+
+            function xe(e) {
+                let l = L;
+                if (l !== null) {
+                    let t = l.prevDep;
+                    for (t !== null ? t.nextDep = null : e.headDep = null, e.tailDep = t; l !== null;) {
+                        let r = l.nextDep;
+                        he(l, e, l.source), l = r
+                    }
+                }
+            }
+
+            function se(e) {
+                if ((e.flags & G) !== 0) throw new Error("CycleError: Infinite effect loop detected.");
+                if (!(e.evalVersion === 0)) {
+                    let u = e.headDep, f = e.evalVersion | 0, d = !1;
+                    for (; u !== null;) {
+                        let O = u.source;
+                        if ((O.flags & $) !== 0 && z(O), (O.version - f | 0) > 0) {
+                            d = !0;
+                            break
+                        }
+                        u = u.nextDep
+                    }
+                    if (!d) {
+                        e.flags = e.flags & ~J, e.evalVersion = E | 0;
+                        return
+                    }
+                }
+                if (e.flags = e.flags & ~J | G, re(e), (e.flags & Z) === 0) return;
+                let t = x, r = L, i = m;
+                x = e, L = e.headDep, m = !0;
+                try {
+                    e.computeFn()
+                } finally {
+                    xe(e), e.currentDep = L, x = t, L = r, m = i, e.flags = e.flags & ~G, e.evalVersion = E | 0
+                }
+            }
+
+            function z(e) {
+                if ((e.evalVersion | 0) === (E | 0)) {
+                    if ((e.flags & K) !== 0) throw e.value;
+                    return e.value
+                }
+                let l = e.evalVersion === 0;
+                if (!l) {
+                    let t = e.headDep, r = e.evalVersion | 0;
+                    for (; t !== null;) {
+                        let i = t.source;
+                        if ((i.flags & $) !== 0 && z(i), (i.version - r | 0) > 0) {
+                            l = !0;
+                            break
+                        }
+                        t = t.nextDep
+                    }
+                }
+                if (l) {
+                    if ((e.flags & G) !== 0) throw new Error("CycleError: Circular dependency detected.");
+                    e.flags = e.flags | G, re(e);
+                    let t = x, r = L, i = m;
+                    x = e, L = e.headDep, m = !0;
+                    try {
+                        let u = e.computeFn(), f = e.equals;
+                        (e.evalVersion === 0 || !f || !f(e.value, u)) && (e.value = u, e.version = E | 0), e.flags = e.flags & ~K
+                    } catch (u) {
+                        e.value = u, e.flags = e.flags | K, e.version = E | 0
+                    } finally {
+                        xe(e), e.currentDep = L, x = t, L = r, m = i, e.flags = e.flags & ~G
+                    }
+                }
+                if (e.evalVersion = E | 0, (e.flags & K) !== 0) throw e.value;
+                return e.value
+            }
+
+            function Le(e, l = {}) {
+                let t = le(e, Se);
+                t.equals = l.equals !== void 0 ? l.equals : Object.is, t.version = E | 0, b = b + 1 | 0;
+                let r = () => (m && x !== null && pe(t, x), t.value);
+                return r.peek = () => t.value, r.set = i => {
+                    let u = t.equals;
+                    if (!(u && u(t.value, i))) {
+                        if (B > 0 && t.revertEpoch !== _ && (t.preBatchValue = t.value, t.preBatchVersion = t.version | 0, t.revertEpoch = _ | 0), t.value = i, B > 0 && t.revertEpoch === _ && u && u(t.preBatchValue, i)) {
+                            t.version = t.preBatchVersion | 0;
+                            return
+                        }
+                        E = E + 1 | 0, t.version = E | 0, Ce(t), B === 0 && ge()
+                    }
+                }, r.update = i => r.set(i(t.value)), r.subscribe = i => {
+                    let u, f = () => i(u);
+                    return ue(() => {
+                        u = r(), ie(f)
+                    })
+                }, r[s] = t, r[c] = t.gen | 0, r
+            }
+
+            function Ve(e, l = {}) {
+                let t = le(void 0, $);
+                t.computeFn = e, t.equals = l.equals !== void 0 ? l.equals : Object.is, C = C + 1 | 0;
+                let r = () => (m && x !== null && pe(t, x), z(t));
+                return r.peek = () => z(t), r.subscribe = i => {
+                    let u, f = () => i(u);
+                    return ue(() => {
+                        u = r(), ie(f)
+                    })
+                }, r[s] = t, r[c] = t.gen | 0, r
+            }
+
+            function ue(e, l = {}) {
+                let t = le(void 0, Z);
+                t.computeFn = e, t.scheduler = l.scheduler, g = g + 1 | 0;
+                let r = l.scheduler, i = null;
+                if (r) {
+                    let O = t.gen | 0;
+                    r(() => ve(t, O))
+                } else try {
+                    se(t)
+                } catch (O) {
+                    i = O
+                }
+                let u = !1, f = t.gen | 0, d = function () {
+                    u || (u = !0, (t.gen | 0) === f && t.flags !== 0 && (de(t), g = g - 1 | 0))
+                };
+                if (i !== null) throw d(), i;
+                return d
+            }
+
+            function Ae(e) {
+                let l = e?.[s];
+                if (!l) {
+                    typeof e == "function" && typeof e.peek != "function" && e();
+                    return
+                }
+                if ((e[c] | 0) === (l.gen | 0) && l.flags !== 0) {
+                    let r = (l.flags & Se) !== 0, i = (l.flags & $) !== 0;
+                    de(l), r && (b = b - 1 | 0), i && (C = C - 1 | 0)
+                }
+            }
+
+            function Be(e) {
+                B === 0 && (_ = _ + 1 | 0, _ === 0 && (_ = 1)), B = B + 1 | 0;
+                try {
+                    return e()
+                } finally {
+                    B = B - 1 | 0, B === 0 && ge()
+                }
+            }
+
+            function ie(e) {
+                let l = m;
+                m = !1;
+                try {
+                    return e()
+                } finally {
+                    m = l
+                }
+            }
+
+            function Oe(e) {
+                if (x !== null) {
+                    let l = x.cleanupFn;
+                    l === void 0 ? x.cleanupFn = e : typeof l == "function" ? x.cleanupFn = [l, e] : l.push(e)
+                }
+            }
+
+            function Te() {
+                return {
+                    signals: b,
+                    computeds: C,
+                    effects: g,
+                    activeLinks: D,
+                    pooledLinks: a - D,
+                    linkPoolCapacity: a,
+                    nodePoolCapacity: o,
+                    activeNodes: w
+                }
+            }
+
+            function _e() {
+                for (let e = 0; e < o; e++) {
+                    let l = v[e];
+                    l.value = void 0, l.computeFn = void 0, l.cleanupFn = void 0, l.equals = void 0, l.scheduler = void 0, l.flags = 0, l.headDep = null, l.tailDep = null, l.currentDep = null, l.headSub = null, l.tailSub = null, l.version = 0, l.evalVersion = 0, l.markEpoch = 0, l.revertEpoch = 0, l.preBatchValue = void 0, l.preBatchVersion = 0, l.gen = l.gen + 1 | 0, e < o - 1 && (l.nextFree = v[e + 1])
+                }
+                v[o - 1].nextFree = null, A = v[0];
+                for (let e = 0; e < a; e++) {
+                    let l = y[e];
+                    l.source = null, l.target = null, l.prevDep = null, l.nextDep = null, l.prevSub = null, l.nextSub = null, e < a - 1 && (l.nextFree = y[e + 1])
+                }
+                y[a - 1].nextFree = null, h = y[0], w = 0, D = 0, I = 0, j = !1, B = 0, x = null, L = null, m = !1, E = 1, _ = 1, b = 0, C = 0, g = 0;
+                for (let e = 0; e < F; e++) N[e] = null;
+                F = 0, N.length = 0
+            }
+
+            return {
+                signal: Le,
+                computed: Ve,
+                effect: ue,
+                dispose: Ae,
+                batch: Be,
+                untrack: ie,
+                onCleanup: Oe,
+                stats: Te,
+                destroy: _e
+            }
+        }
+
+        var T = ye();
+
+        function Me(n) {
+            T = n
+        }
+
+        function Qe(n, s) {
+            return T.signal(n, s)
+        }
+
+        function Ue(n, s) {
+            return T.computed(n, s)
+        }
+
+        function M(n, s) {
+            return T.effect(n, s)
+        }
+
+        function He(n) {
+            return T.dispose(n)
+        }
+
+        function je(n) {
+            return T.batch(n)
+        }
+
+        function Q(n) {
+            return T.untrack(n)
+        }
+
+        function ze(n) {
+            return T.onCleanup(n)
+        }
+
+        function $e() {
+            return T.stats()
+        }
+
+        function Ze() {
+            return T.destroy()
+        }
+
+        var P = Symbol("lite_disposables"), Y = "__lite_bind", we = !1,
+            Ee = typeof MutationObserver < "u" ? new MutationObserver(n => {
+                let s = n.length;
+                for (let c = 0; c < s; c++) {
+                    let o = n[c].removedNodes, a = o.length;
+                    for (let p = 0; p < a; p++) {
+                        let S = o[p];
+                        S.nodeType === 1 && Je(S)
+                    }
+                }
+            }) : null;
+
+        function Je(n) {
+            n.isConnected || oe(n)
+        }
+
+        function oe(n) {
+            n[P] !== void 0 && Fe(n);
+            let s = n.getElementsByClassName(Y);
+            for (let c = s.length - 1; c >= 0; c--) Fe(s[c])
+        }
+
+        function Fe(n) {
+            let s = n[P];
+            if (s !== void 0) {
+                let c = s.length;
+                for (let o = 0; o < c; o++) try {
+                    s[o]()
+                } catch (a) {
+                    console.error("lite-signal-dom: error during binding disposal", a)
+                }
+                n[P] = void 0, n.nodeType === 1 && n.classList.remove(Y)
+            }
+        }
+
+        function ae(n, s) {
+            if (!we && Ee !== null) {
+                let c = document.body || document.documentElement;
+                c && (Ee.observe(c, {childList: !0, subtree: !0}), we = !0)
+            }
+            n[P] === void 0 && (n[P] = [], n.nodeType === 1 && n.classList.add(Y)), n[P].push(s)
+        }
+
+        function ke(n, s) {
+            let c = n[P];
+            if (c !== void 0) {
+                let o = c.indexOf(s);
+                o > -1 && c.splice(o, 1), c.length === 0 && (n[P] = void 0, n.nodeType === 1 && n.classList.remove(Y))
+            }
+        }
+
+        function q(n, s) {
+            let c = M(s);
+            return ae(n, c), () => {
+                c(), ke(n, c)
+            }
+        }
+
+        function Ke(n, s) {
+            return q(n, () => {
+                n.textContent = s()
+            })
+        }
+
+        function We(n, s) {
+            return q(n, () => {
+                n.innerHTML = s()
+            })
+        }
+
+        function Xe(n, s, c) {
+            return q(n, () => {
+                let o = c();
+                o == null || o === !1 ? n.removeAttribute(s) : n.setAttribute(s, o === !0 ? "" : o)
+            })
+        }
+
+        function Ye(n, s, c) {
+            return q(n, () => {
+                n[s] = c()
+            })
+        }
+
+        function et(n, s, c) {
+            return q(n, () => {
+                c() ? n.classList.add(s) : n.classList.remove(s)
+            })
+        }
+
+        function tt(n, s, c) {
+            return q(n, () => {
+                let o = c();
+                n.style[s] = o ?? ""
+            })
+        }
+
+        function nt(n, s, c = "") {
+            return q(n, () => {
+                n.style.display = s() ? c : "none"
+            })
+        }
+
+        var lt = new Set(["touchstart", "touchmove", "wheel", "mousewheel"]);
+
+        function rt(n, s, c, o) {
+            let a = o !== void 0 ? o : {passive: lt.has(s)};
+            n.addEventListener(s, c, a);
+            let p = () => n.removeEventListener(s, c, a);
+            return ae(n, p), () => {
+                p(), ke(n, p)
+            }
+        }
+
+        function st(n, s, c, o) {
+            let a = new Map, p = [], S = [], V = 0, v = document.createComment("lite-keyed-anchor");
+            n.appendChild(v);
+            let A = (h, w, D) => {
+                h.seen !== V && (oe(h.element), h.element.parentNode === n && n.removeChild(h.element), p.push(h.element), D.delete(w))
+            }, y = q(n, () => {
+                let h = s(), w = h.length;
+                V = V + 1 | 0, S.length > w && (S.length = w);
+                for (let b = 0; b < w; b++) {
+                    let C = c(h[b]);
+                    S[b] = C;
+                    let g = a.get(C);
+                    g !== void 0 && (g.seen = V)
+                }
+                a.size > 0 && a.forEach(A);
+                let D = v;
+                for (let b = w - 1; b >= 0; b--) {
+                    let C = S[b], g = a.get(C);
+                    if (g === void 0) {
+                        let R = p.length > 0 ? p.pop() : null;
+                        g = Q(() => o(h[b], R)), g.seen = V, a.set(C, g), ae(g.element, g.dispose)
+                    }
+                    g.element.nextSibling !== D && n.insertBefore(g.element, D), D = g.element
+                }
+            });
+            return () => {
+                y(), a.forEach(h => {
+                    oe(h.element), h.element.parentNode === n && n.removeChild(h.element)
+                }), a.clear(), p.length = 0, v.parentNode === n && n.removeChild(v)
+            }
+        }
+
+        return Re(ut);
+    })();
+    </script>
+    <style>
+        :root {
+            --bg: #070b0c;
+            --panel: #0c1314;
+            --panel-2: #0f1a1b;
+            --line: #1d2e2d;
+            --ink: #d7e6e1;
+            --dim: #6f8a84;
+            --phos: #57f2a7; /* phosphor green — the "keyed" / good signal */
+            --phos-dim: #1e6b49;
+            --amber: #ffb24a; /* amber — the "naive" / churn signal */
+            --amber-dim: #6e4a14;
+            --red: #ff5d6c;
+            --mono: "JetBrains Mono", "SFMono-Regular", "SF Mono", "Cascadia Code", ui-monospace, Menlo, Consolas, monospace;
+            --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        body {
+            background: radial-gradient(1200px 600px at 80% -10%, #0d1a18 0%, transparent 60%),
+            repeating-linear-gradient(0deg, transparent 0 2px, rgba(255, 255, 255, .012) 2px 3px),
+            var(--bg);
+            color: var(--ink);
+            font-family: var(--sans);
+            -webkit-font-smoothing: antialiased;
+            padding: 28px clamp(16px, 4vw, 56px) 64px;
+        }
+
+        .wrap {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        /* ── header ─────────────────────────────────────────────── */
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 18px 28px;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 20px;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .kicker {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: .34em;
+            text-transform: uppercase;
+            color: var(--phos);
+        }
+
+        h1 {
+            font-family: var(--mono);
+            font-weight: 700;
+            font-size: clamp(26px, 4.4vw, 44px);
+            margin: 0;
+            letter-spacing: -.01em;
+            line-height: 1;
+        }
+
+        h1 .at {
+            color: var(--dim);
+            font-weight: 400;
+        }
+
+        .tag {
+            color: var(--dim);
+            font-size: 14.5px;
+            max-width: 46ch;
+            line-height: 1.5;
+        }
+
+        .tag b {
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        /* ── telemetry strip ────────────────────────────────────── */
+        .scope {
+            margin-left: auto;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(118px, 1fr));
+            gap: 10px;
+        }
+
+        .gauge {
+            background: linear-gradient(180deg, var(--panel-2), var(--panel));
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px 13px;
+            min-width: 118px;
+        }
+
+        .gauge .l {
+            font-family: var(--mono);
+            font-size: 9.5px;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--dim);
+        }
+
+        .gauge .v {
+            font-family: var(--mono);
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.15;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .v.phos {
+            color: var(--phos);
+            text-shadow: 0 0 16px rgba(87, 242, 167, .35);
+        }
+
+        .v.amber {
+            color: var(--amber);
+            text-shadow: 0 0 16px rgba(255, 178, 74, .3);
+        }
+
+        /* ── controls ───────────────────────────────────────────── */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 9px;
+            margin: 22px 0 8px;
+        }
+
+        button.ctl {
+            font-family: var(--mono);
+            font-size: 12.5px;
+            letter-spacing: .02em;
+            color: var(--ink);
+            background: var(--panel);
+            border: 1px solid var(--line);
+            padding: 9px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: .13s ease;
+        }
+
+        button.ctl:hover {
+            border-color: var(--phos-dim);
+            color: var(--phos);
+            transform: translateY(-1px);
+        }
+
+        button.ctl:active {
+            transform: translateY(0);
+        }
+
+        button.ctl.hot {
+            border-color: var(--phos);
+            color: var(--phos);
+            box-shadow: 0 0 0 1px var(--phos-dim) inset, 0 0 22px rgba(87, 242, 167, .18);
+        }
+
+        button.ctl[disabled] {
+            opacity: .4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spacer {
+            flex: 1;
+        }
+
+        .filterbox {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--dim);
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .filterbox input[type=range] {
+            width: 150px;
+            accent-color: var(--phos);
+        }
+
+        .seg {
+            display: flex;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .seg button {
+            font-family: var(--mono);
+            font-size: 12px;
+            background: var(--panel);
+            color: var(--dim);
+            border: 0;
+            padding: 9px 13px;
+            cursor: pointer;
+        }
+
+        .seg button.on {
+            background: var(--phos-dim);
+            color: #04150d;
+            font-weight: 700;
+        }
+
+        /* ── arena ──────────────────────────────────────────────── */
+        .arena {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-top: 14px;
+        }
+
+        @media (max-width: 860px) {
+            .arena {
+                grid-template-columns: 1fr;
+            }
+
+            .scope {
+                margin-left: 0;
+            }
+        }
+
+        .col {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .col header.ch {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .col .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .dot.g {
+            background: var(--phos);
+            box-shadow: 0 0 12px var(--phos);
+        }
+
+        .dot.a {
+            background: var(--amber);
+            box-shadow: 0 0 12px var(--amber);
+        }
+
+        .col h2 {
+            font-family: var(--mono);
+            font-size: 13px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        .col .sub {
+            font-family: var(--mono);
+            font-size: 10.5px;
+            color: var(--dim);
+            margin-left: auto;
+        }
+
+        .readout {
+            display: flex;
+            gap: 18px;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--line);
+            font-family: var(--mono);
+        }
+
+        .readout .r {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .readout .rl {
+            font-size: 9px;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            color: var(--dim);
+        }
+
+        .readout .rv {
+            font-size: 18px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            padding: 15px;
+            min-height: 240px;
+            align-content: flex-start;
+        }
+
+        /* ── chips ──────────────────────────────────────────────── */
+        .chip {
+            --h: 160;
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 11px;
+            border-radius: 8px;
+            user-select: none;
+            background: hsl(var(--h) 38% 13%);
+            border: 1px solid hsl(var(--h) 50% 26%);
+            color: hsl(var(--h) 70% 78%);
+            transition: background .25s ease, border-color .25s ease, color .25s ease;
+        }
+
+        .chip .id {
+            color: hsl(var(--h) 40% 52%);
+            font-weight: 400;
+            font-size: 10.5px;
+        }
+
+        .chip.flash {
+            animation: flash .5s ease;
+        }
+
+        @keyframes flash {
+            0% {
+                background: var(--phos);
+                color: #04150d;
+                border-color: var(--phos);
+            }
+            100% {
+            }
+        }
+
+        .col.naive .chip.born {
+            animation: born .45s ease;
+        }
+
+        @keyframes born {
+            0% {
+                background: var(--amber);
+                color: #1a1003;
+                border-color: var(--amber);
+                transform: scale(.9);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* ── footer note ────────────────────────────────────────── */
+        .note {
+            margin-top: 24px;
+            border: 1px solid var(--line);
+            border-left: 2px solid var(--phos);
+            border-radius: 0 10px 10px 0;
+            background: var(--panel);
+            padding: 15px 18px;
+            color: var(--dim);
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+
+        .note b {
+            color: var(--ink);
+        }
+
+        .note code {
+            font-family: var(--mono);
+            color: var(--phos);
+            font-size: 12.5px;
+        }
+
+        .legend {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--dim);
+            margin-top: 10px;
+        }
+
+        .legend .k {
+            color: var(--phos);
+        }
+
+        .legend .n {
+            color: var(--amber);
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <div class="brand">
+            <span class="kicker">reconciler · scope</span>
+            <h1><span class="at">@zakkster/</span>lite-signal-dom</h1>
+            <p class="tag">Signals wired straight to the DOM — <b>no virtual DOM</b>, <b>no rebuild</b>. The keyed
+                reconciler reuses elements across reorders, so steady-state churn is <b>zero allocation</b>. Watch the
+                counters.</p>
+        </div>
+        <div class="scope">
+            <div class="gauge">
+                <div class="l">elements created</div>
+                <div class="v phos" id="g-created">0</div>
+            </div>
+            <div class="gauge">
+                <div class="l">elements reused</div>
+                <div class="v phos" id="g-reused">0</div>
+            </div>
+            <div class="gauge">
+                <div class="l">dom moves</div>
+                <div class="v phos" id="g-moves">0</div>
+            </div>
+            <div class="gauge">
+                <div class="l">list renders</div>
+                <div class="v phos" id="g-renders">0</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="controls">
+        <button class="ctl" data-act="shuffle">⇄ Shuffle</button>
+        <button class="ctl" data-act="reverse">⇋ Reverse</button>
+        <button class="ctl" data-act="sort">↕ Sort by id</button>
+        <button class="ctl" data-act="add">+ Add</button>
+        <button class="ctl" data-act="remove">− Remove</button>
+        <button class="ctl" data-act="tick">⚡ Mutate one</button>
+        <button class="ctl hot" data-act="stress">▶▶ STRESS ×60</button>
+        <span class="spacer"></span>
+        <span class="filterbox">filter ≥ <input type="range" id="filter" min="0" max="100" value="0"><span id="filterv"
+                                                                                                           style="color:var(--phos)">0</span></span>
+        <button class="ctl" data-act="reset">↺ Reset</button>
+    </div>
+
+    <div class="arena">
+        <div class="col" id="col-keyed">
+            <header class="ch"><span class="dot g"></span>
+                <h2>keyed()</h2><span class="sub">reuse + pool · this library</span></header>
+            <div class="readout">
+                <div class="r"><span class="rl">created</span><span class="rv phos" id="k-created">0</span></div>
+                <div class="r"><span class="rl">reused</span><span class="rv phos" id="k-reused">0</span></div>
+                <div class="r"><span class="rl">in pool</span><span class="rv" id="k-pool"
+                                                                    style="color:var(--dim)">0</span></div>
+                <div class="r"><span class="rl">visible</span><span class="rv" id="k-count"
+                                                                    style="color:var(--ink)">0</span></div>
+            </div>
+            <div class="grid" id="keyed-grid"></div>
+        </div>
+
+        <div class="col naive" id="col-naive">
+            <header class="ch"><span class="dot a"></span>
+                <h2>naive rebuild</h2><span class="sub">recreate all · the foil</span></header>
+            <div class="readout">
+                <div class="r"><span class="rl">created</span><span class="rv amber" id="n-created">0</span></div>
+                <div class="r"><span class="rl">reused</span><span class="rv" id="n-reused"
+                                                                   style="color:var(--dim)">0</span></div>
+                <div class="r"><span class="rl">created/render</span><span class="rv amber" id="n-per">0</span></div>
+                <div class="r"><span class="rl">visible</span><span class="rv" id="n-count"
+                                                                    style="color:var(--ink)">0</span></div>
+            </div>
+            <div class="grid" id="naive-grid"></div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <span class="k">■</span> keyed: created climbs once to the peak count, then stays flat forever &nbsp;·&nbsp;
+        <span class="n">■</span> naive: created jumps by the visible count on <em>every</em> render
+    </div>
+
+    <div class="note">
+        <b>What you're proving.</b> Both panels show the same list, driven by the same signal. Hit <code>STRESS
+        ×60</code>.
+        The <b>keyed</b> panel rearranges the existing nodes — <code>created</code> never moves, every shuffle is pure
+        <code>insertBefore</code>. The <b>naive</b> panel throws its DOM away and rebuilds, so <code>created</code>
+        rockets up by
+        the row count each time — that's the garbage a virtual-DOM or rebuild approach hands the collector every frame.
+        <b>Mutate one</b> changes a single row's value: only that chip flashes, and the list never re-renders, because
+        per-row bindings are independent of the reconciler.
+    </div>
+</div>
+
+<script>
+    const {signal, effect, untrack, keyed, bindText, bindClass, bindStyle, bindAttr} = LR;
+
+    // ── instrumentation counters ────────────────────────────────
+    const C = {kCreated: 0, kReused: 0, moves: 0, renders: 0, nCreated: 0, nPer: 0};
+    const $ = (id) => document.getElementById(id);
+
+    function paint() {
+        $("g-created").textContent = C.kCreated;
+        $("g-reused").textContent = C.kReused;
+        $("g-moves").textContent = C.moves;
+        $("g-renders").textContent = C.renders;
+        $("k-created").textContent = C.kCreated;
+        $("k-reused").textContent = C.kReused;
+        $("k-pool").textContent = poolSize();
+        $("n-created").textContent = C.nCreated;
+        $("n-per").textContent = C.nPer;
+    }
+
+    // ── data model ──────────────────────────────────────────────
+    let nextId = 1;
+    const rng = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+    function makeItem() {
+        const id = nextId++;
+        return {id, hue: rng(0, 359), v: signal(rng(1, 99))};
+    }
+
+    function seed(n) {
+        const a = [];
+        for (let i = 0; i < n; i++) a.push(makeItem());
+        return a;
+    }
+
+    let model = seed(24);
+    // equals:false so re-setting the SAME (mutated-in-place) array still propagates —
+    // no array cloning in the hot path. This is the in-place reuse pattern.
+    const list = signal(model, {equals: false});
+    const threshold = signal(0);
+
+    // Filtered view that drives BOTH panels. When no filter is active (the STRESS
+    // path) it returns the model array directly — zero allocation per render. When
+    // filtering, it reuses a single buffer instead of allocating a fresh array.
+    let filterBuf = [];
+    const shown = LR.computed(() => {
+        const th = threshold();
+        const arr = list();
+        if (th <= 0) return arr;                 // zero-alloc passthrough
+        filterBuf.length = 0;
+        for (let i = 0; i < arr.length; i++) if (arr[i].v.peek() >= th) filterBuf.push(arr[i]);
+        return filterBuf;
+    }, {equals: false});
+
+    // ── KEYED panel (the hero) ──────────────────────────────────
+    const keyedGrid = $("keyed-grid");
+    let poolRef = null;
+    // wrap insertBefore to count real DOM moves
+    const realInsert = keyedGrid.insertBefore.bind(keyedGrid);
+    keyedGrid.insertBefore = function (node, ref) {
+        C.moves++;
+        return realInsert(node, ref);
+    };
+
+    function renderRow(item, recycled) {
+        let el;
+        if (recycled) {
+            C.kReused++;
+            el = recycled;
+        } else {
+            C.kCreated++;
+            el = document.createElement("div");
+            el.className = "chip";
+        }
+        // hue is constant per item — custom properties must use setProperty(), not style[x]
+        el.style.setProperty("--h", item.hue);
+        el.classList.remove("flash");
+        el.innerHTML = '<span class="id">#' + item.id + '</span><span class="val"></span>';
+        const valEl = el.querySelector(".val");
+        // the only reactive binding on the row: its value. Disposed + re-bound on recycle.
+        const d = bindText(valEl, () => item.v());
+        const flash = () => {
+            el.classList.remove("flash");
+            void el.offsetWidth;
+            el.classList.add("flash");
+        };
+        item._flash = flash;
+        return {
+            element: el, dispose: () => {
+                d();
+                item._flash = null;
+            }
+        };
+    }
+
+    const stopKeyed = keyed(keyedGrid, () => shown(), it => it.id, renderRow);
+    // expose pool size via a tiny probe: count detached chips we can't see directly,
+    // so approximate from created - currently-visible (created that aren't mounted)
+    function poolSize() {
+        return Math.max(0, C.kCreated - keyedGrid.querySelectorAll(".chip").length);
+    }
+
+    // ── NAIVE panel (the foil) ──────────────────────────────────
+    const naiveGrid = $("naive-grid");
+    let naiveStops = [];
+    const stopNaive = effect(() => {
+        const arr = shown();           // reactive dependency
+        untrack(() => {
+            for (let i = 0; i < naiveStops.length; i++) naiveStops[i]();   // dispose old (a careful dev would)
+            naiveStops = [];
+            naiveGrid.textContent = "";                              // throw the DOM away
+            C.nPer = arr.length;
+            for (let i = 0; i < arr.length; i++) {
+                const item = arr[i];
+                C.nCreated++;                                          // a fresh node every render
+                const el = document.createElement("div");
+                el.className = "chip born";
+                el.style.setProperty("--h", item.hue);
+                el.innerHTML = '<span class="id">#' + item.id + '</span><span class="val"></span>';
+                naiveStops.push(bindText(el.querySelector(".val"), () => item.v()));
+                naiveGrid.appendChild(el);
+            }
+            $("n-count").textContent = arr.length;
+            $("k-count").textContent = arr.length;
+        });
+    });
+
+    // count reconciler renders (the keyed list effect runs once per list/filter change)
+    let firstRender = true;
+    effect(() => {
+        shown();
+        if (firstRender) {
+            firstRender = false;
+            return;
+        }
+        C.renders++;
+    });
+
+    // ── actions ─────────────────────────────────────────────────
+    const shuffle = (a) => {
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = rng(0, i);
+            const t = a[i];
+            a[i] = a[j];
+            a[j] = t;
+        }
+        return a;
+    };
+
+    function commit() {
+        list.set(model);
+        paint();
+    }
+
+    const actions = {
+        shuffle() {
+            shuffle(model);
+            commit();
+        },
+        reverse() {
+            model.reverse();
+            commit();
+        },
+        sort() {
+            model.sort((x, y) => x.id - y.id);
+            commit();
+        },
+        add() {
+            model.splice(rng(0, model.length), 0, makeItem());
+            commit();
+        },
+        remove() {
+            if (model.length) {
+                model.splice(rng(0, model.length - 1), 1);
+                commit();
+            }
+        },
+        tick() {
+            if (!model.length) return;
+            const it = model[rng(0, model.length - 1)];
+            it.v.set(rng(1, 99));
+            if (it._flash) it._flash();
+            paint();
+        },
+        stress() {
+            let n = 0;
+            const step = () => {
+                shuffle(model);
+                list.set(model);
+                if (++n < 60) requestAnimationFrame(step); else paint();
+            };
+            step();
+        },
+        reset() {
+            // dispose visible keyed rows cleanly by clearing the list, then reseed
+            model = seed(24);
+            C.kCreated = 0;
+            C.kReused = 0;
+            C.moves = 0;
+            C.renders = 0;
+            C.nCreated = 0;
+            C.nPer = 0;
+            firstRender = true;
+            threshold.set(0);
+            $("filter").value = 0;
+            $("filterv").textContent = "0";
+            list.set(model);
+            paint();
+        },
+    };
+
+    document.querySelectorAll("button.ctl").forEach(b => {
+        b.addEventListener("click", () => actions[b.dataset.act] && actions[b.dataset.act]());
+    });
+    const filter = $("filter");
+    filter.addEventListener("input", () => {
+        $("filterv").textContent = filter.value;
+        threshold.set(+filter.value);
+        paint();
+    });
+
+    paint();
+</script>
+</body>
+</html>

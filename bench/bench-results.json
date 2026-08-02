@@ -1,0 +1,25 @@
+{
+  "node": "v23.5.0",
+  "timestamp": "2026-05-23T01:57:33.212Z",
+  "harness": "mock-dom (no jsdom); isolates library allocation; throughput is algorithmic (no layout/paint)",
+  "textUpdates": {
+    "count": 1000000,
+    "ops": 14059930.67926097,
+    "heapBytes": 280,
+    "bytesPerUpdate": 0.00028
+  },
+  "keyedReorder": {
+    "items": 100,
+    "iters": 50000,
+    "ops": 222669.4146477065,
+    "heapBytes": 664,
+    "bytesPerUpdate": 0.01328
+  },
+  "naiveRebuild": {
+    "items": 100,
+    "iters": 50000,
+    "ops": 27705.14842334734,
+    "heapBytes": -16,
+    "allocsPerUpdate": 300
+  }
+}

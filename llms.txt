@@ -1,0 +1,55 @@
+# @zakkster/lite-signal-dom
+
+> Zero-GC, vanilla-first reactive DOM bindings for @zakkster/lite-signal. No virtual DOM, no template compiler, no build step. Each binding is one lite-signal `effect` wrapping a single DOM property write; the getter is captured once at bind time, so the per-update hot path allocates nothing. A keyed list reconciler diffs by key, reuses surviving elements, and recycles removed ones through a pool.
+
+## Install
+npm i @zakkster/lite-signal-dom
+Peer/runtime dependency: @zakkster/lite-signal ^1.1.0. ESM only. Ships .d.ts.
+
+## Mental model
+- A "binding" ties one DOM property/attribute/class/style/event to a reactive getter.
+- Every binding returns an idempotent `dispose()` handle.
+- Bindings ALSO auto-dispose when their element leaves the DOM, via one shared document-level MutationObserver. A same-tick remove+re-insert (reorder/recycle) is detected via `isConnected` and does NOT dispose.
+- Reads inside a getter must be lite-signal reads (`signal()`, `computed()`); writes (`.set`, `.update`) trigger the bound update synchronously.
+
+## API
+All getters are `() => value`. All binders return `() => void` (dispose).
+
+bindText(node, getter): set node.textContent. Safe. Coerces to string.
+bindHTMLUnsafe(node, getter): set node.innerHTML. UNSAFE — never pass untrusted input.
+bindAttr(node, attr, getter): set/remove attribute. null|undefined|false => removeAttribute; true => "" (boolean attr); else String(value).
+bindProp(node, prop, getter): set live DOM property (value, checked, ...). Use for form state.
+bindClass(node, className, getter): toggle one class on truthy/falsy; leaves other classes alone.
+bindStyle(node, styleProp, getter): set inline style prop; null|undefined resets to "".
+bindShow(node, getter, displayStyle=""): show/hide via style.display (shown => displayStyle, hidden => "none").
+bindOn(node, eventName, handler, options?): addEventListener tied to DOM lifetime. touchstart/touchmove/wheel/mousewheel default to {passive:true}; pass options to override.
+keyed(parent, listGetter, keyFn, renderFn): keyed list reconciler. Returns dispose for the whole list.
+  - listGetter: () => array (reactive).
+  - keyFn: (item) => string|number, stable & unique per render.
+  - renderFn: (item, recycledElement|null) => { element, dispose }. Build a new element or reset the recycled one. renderFn reads are untracked, so the list effect re-runs only when the LIST changes; per-row reactivity comes from bindings set inside renderFn.
+
+## Guarantees / edge cases
+- ~0 bytes allocated per update for simple bindings and for keyed reorders. Measured in isolation (no-op DOM, no observer) to separate library cost from host-DOM cost: < 0.02 bytes/update over 1,000,000 bindText updates and 100,000 keyed reorders. In a browser the only extra per-update cost is the native DOM mutation itself.
+- keyed diff is a 3-pass integer-epoch mark-sweep: no Set, no key array, no iterators allocated per update. The key-scratch buffer is truncated when the list shrinks, so old keys are not retained.
+- IN-PLACE ARRAY REUSE: re-setting the same mutated array reference bails under the default Object.is equality (the reconciler won't run). Use a fresh array, or signal(arr, { equals: false }) for zero-allocation reorders.
+- Keys must be unique per render; duplicates collapse to one view (last position wins).
+- Disposal is idempotent (call dispose any number of times).
+- Auto-disposal covers an element and its bound descendants. Raw text-node bindings removed directly are not auto-collected — bind on the parent element or call dispose manually.
+- SSR/no-DOM safe at import: the observer is only constructed where MutationObserver exists, and armed lazily on the first binding.
+
+## Bundle
+~1.7 KB min+gzip. Zero dependencies beyond @zakkster/lite-signal.
+
+## Example
+import { signal } from "@zakkster/lite-signal";
+import { bindText, bindOn, keyed } from "@zakkster/lite-signal-dom";
+
+const count = signal(0);
+bindText(label, () => `count: ${count()}`);
+bindOn(button, "click", () => count.update(n => n + 1));
+
+const todos = signal([{ id: 1, text: signal("first") }]);
+keyed(listEl, todos, t => t.id, (t, recycled) => {
+  const li = recycled || document.createElement("li");
+  return { element: li, dispose: bindText(li, () => t.text()) };
+});
