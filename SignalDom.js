@@ -20,15 +20,21 @@
  * @module @zakkster/lite-signal-dom
  */
 
-import { effect, untrack } from "@zakkster/lite-signal";
+import { effect, getOwner, runWithOwner } from "@zakkster/lite-signal";
 
-// ─────────────────────────────────────────────────────────────────
+/**
+ * Package version. Kept in three-place sync with package.json and CHANGELOG.md.
+ * @type {string}
+ */
+export const VERSION = "1.1.0";
+
+// -----------------------------------------------------------------
 // 1. GLOBAL AUTO-DISPOSER (Internal)
-// ─────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------
 
 /**
  * Per-node list of teardown functions, stored under a Symbol so it never
- * collides with user properties and is invisible to `for…in` / `JSON`.
+ * collides with user properties and is invisible to `for...in` / `JSON`.
  * @type {symbol}
  * @private
  */
@@ -153,8 +159,8 @@ function trackDisposal(node, disposeFn) {
 
 /**
  * Remove a single disposable from a node without disturbing its siblings.
- * Used by the manual disposers so calling one twice — or after the node has
- * already left the DOM — is safe.
+ * Used by the manual disposers so calling one twice -- or after the node has
+ * already left the DOM -- is safe.
  * @param {Node} node
  * @param {() => void} disposeFn
  * @private
@@ -171,9 +177,9 @@ function untrackDisposal(node, disposeFn) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------
 // 2. BINDING PRIMITIVES
-// ─────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------
 
 /**
  * Core binding factory. Wraps `computeFn` in an effect, registers it for both
@@ -215,8 +221,8 @@ export function bindText(node, getter) {
 /**
  * Bind a node's `innerHTML` to a reactive getter.
  *
- * ⚠️ **UNSAFE.** The result is parsed as HTML. Never pass unsanitised
- * user-controlled strings — use {@link bindText} for untrusted content.
+ * WARNING: **UNSAFE.** The result is parsed as HTML. Never pass unsanitised
+ * user-controlled strings -- use {@link bindText} for untrusted content.
  *
  * @param {Element} node
  * @param {() => string} getter
@@ -251,7 +257,7 @@ export function bindAttr(node, attr, getter) {
 }
 
 /**
- * Bind a DOM **property** (not attribute) to a reactive getter — e.g.
+ * Bind a DOM **property** (not attribute) to a reactive getter -- e.g.
  * `value`, `checked`, `selectedIndex`. Use this for form state and any
  * property whose live value diverges from its initial attribute.
  *
@@ -278,7 +284,7 @@ export function bindProp(node, prop, getter) {
  *
  * @param {Element} node
  * @param {string} className
- * @param {() => unknown} getter Truthy → add class, falsy → remove.
+ * @param {() => unknown} getter Truthy -> add class, falsy -> remove.
  * @returns {() => void} Idempotent dispose handle.
  */
 export function bindClass(node, className, getter) {
@@ -318,7 +324,7 @@ export function bindStyle(node, styleProp, getter) {
  *   bindShow(grid, () => hasItems(), "grid");
  *
  * @param {ElementCSSInlineStyle} node
- * @param {() => unknown} getter        Truthy → shown.
+ * @param {() => unknown} getter        Truthy -> shown.
  * @param {string} [displayStyle=""]    `display` value to use when shown.
  * @returns {() => void} Idempotent dispose handle.
  */
@@ -328,9 +334,9 @@ export function bindShow(node, getter, displayStyle = "") {
     });
 }
 
-// ─────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------
 // 3. EVENT BINDING HELPER
-// ─────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------
 
 /**
  * Events that default to `{ passive: true }` so they never block scrolling.
@@ -368,9 +374,9 @@ export function bindOn(node, eventName, handler, options) {
     };
 }
 
-// ─────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------
 // 4. ECS-STYLE KEYED LIST RENDERER
-// ─────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------
 
 /**
  * @typedef {object} KeyedView
@@ -382,7 +388,7 @@ export function bindOn(node, eventName, handler, options) {
  */
 
 /**
- * Keyed list reconciler — the reactive analogue of an ECS entity table.
+ * Keyed list reconciler -- the reactive analogue of an ECS entity table.
  *
  * Reacts to a signal that returns an array. On every change it diffs the new
  * list against the mounted views **by key**, reusing the DOM element for any
@@ -390,7 +396,7 @@ export function bindOn(node, eventName, handler, options) {
  * `renderFn` can reset them instead of allocating new nodes.
  *
  * **Zero-GC steady state.** The diff is a three-pass mark-and-sweep keyed by an
- * integer epoch — no `Set`, no array of keys, no iterator objects allocated per
+ * integer epoch -- no `Set`, no array of keys, no iterator objects allocated per
  * update. The only persistent structures (a `Map`, a pool array, a key scratch
  * array) are allocated once at registration and reused for the lifetime of the
  * list. Adding/removing/reordering N items costs zero JS-heap allocation beyond
@@ -398,7 +404,7 @@ export function bindOn(node, eventName, handler, options) {
  *
  * **Per-item reactivity is independent.** `renderFn`'s reads are untracked, so
  * the list effect only re-runs when the *list itself* changes. Fine-grained
- * updates inside a row (text, classes, …) come from the bindings `renderFn`
+ * updates inside a row (text, classes, ...) come from the bindings `renderFn`
  * sets up, which react on their own.
  *
  * **Key uniqueness.** Keys must be unique within a render. Duplicate keys
@@ -453,6 +459,25 @@ export function keyed(parent, listGetter, keyFn, renderFn) {
         }
     };
 
+    // SD-05: stable per-keyed ownership scope for the row bindings.
+    // The reconcile below runs inside a list `effect` (createBinding). lite-signal
+    // (>= 1.2.0) auto-disposes a nested effect when its OWNER re-runs, so bindings
+    // created as children of the list effect would be torn down on every list
+    // change and never recreated for moved-but-surviving keys -- the row freezes.
+    // Instead we capture a one-shot owner that never re-runs and adopt each row's
+    // effects into it via `runWithOwner`. Row effects then outlive list re-runs,
+    // and disposing this owner in teardown cascade-disposes EVERY row effect --
+    // including any a throwing `renderFn` created partially -- so teardown stays a
+    // fail-closed backstop. (`getOwner`/`runWithOwner` require lite-signal >= 1.5.0.)
+    let rowOwner;
+    const rowOwnerDispose = effect(() => { rowOwner = getOwner(); });
+    // Register the owner's teardown for auto-disposal too, so a bare DOM removal
+    // of `parent` (no explicit keyed disposer call) reclaims it via the observer's
+    // disposeSubtree, not just the manual teardown below. Without this the owner
+    // effect is stranded on the auto-dispose path -- one leaked node per instance.
+    // Idempotent with the explicit rowOwnerDispose() in teardown.
+    trackDisposal(parent, rowOwnerDispose);
+
     const listDispose = createBinding(parent, () => {
         const list = listGetter();
         const len = list.length;
@@ -461,10 +486,10 @@ export function keyed(parent, listGetter, keyFn, renderFn) {
         // Release stale key references when the list shrinks: indices >= len
         // would otherwise pin keys (strings/objects) from a previous, longer
         // render for the lifetime of this binding. Only truncate (never grow
-        // here) so the array stays packed — pass 1 extends it contiguously.
+        // here) so the array stays packed -- pass 1 extends it contiguously.
         if (keyScratch.length > len) keyScratch.length = len;
 
-        // PASS 1 — mark surviving views; cache keys so keyFn runs once per item.
+        // PASS 1 -- mark surviving views; cache keys so keyFn runs once per item.
         for (let i = 0; i < len; i++) {
             const key = keyFn(list[i]);
             keyScratch[i] = key;
@@ -472,10 +497,10 @@ export function keyed(parent, listGetter, keyFn, renderFn) {
             if (view !== undefined) view.seen = epoch;
         }
 
-        // PASS 2 — sweep views not marked this epoch (zero per-call allocation).
+        // PASS 2 -- sweep views not marked this epoch (zero per-call allocation).
         if (activeViews.size > 0) activeViews.forEach(sweepStale);
 
-        // PASS 3 — place every item in order, creating missing views from the
+        // PASS 3 -- place every item in order, creating missing views from the
         // pool. Walk back-to-front so each element is inserted before the one
         // that should follow it, using the anchor as the tail sentinel.
         let insertCursor = anchor;
@@ -485,7 +510,12 @@ export function keyed(parent, listGetter, keyFn, renderFn) {
 
             if (view === undefined) {
                 const el = elementPool.length > 0 ? elementPool.pop() : null;
-                view = untrack(() => renderFn(list[i], el));
+                // Adopt the row's bindings into the stable per-keyed owner (see
+                // SD-05 note above), not the re-running list effect. runWithOwner
+                // also nulls the tracking observer for renderFn's direct reads
+                // (as the old `untrack` did), so building a row does not link the
+                // list effect; the row's own bindings re-establish their scopes.
+                view = runWithOwner(rowOwner, () => renderFn(list[i], el));
                 view.seen = epoch;
                 activeViews.set(key, view);
                 // Hook the row's own teardown into the global auto-disposer so a
@@ -502,7 +532,7 @@ export function keyed(parent, listGetter, keyFn, renderFn) {
 
     return () => {
         listDispose();
-        // Deterministic full teardown — don't leave orphaned views for the
+        // Deterministic full teardown -- don't leave orphaned views for the
         // observer to find later (it might never fire if `parent` is detached
         // wholesale rather than per-child).
         activeViews.forEach((view) => {
@@ -512,5 +542,12 @@ export function keyed(parent, listGetter, keyFn, renderFn) {
         activeViews.clear();
         elementPool.length = 0;
         if (anchor.parentNode === parent) parent.removeChild(anchor);
+        // Disposing the stable owner cascade-disposes any row effect the manual
+        // sweep above did not reach (e.g. bindings left by a throwing renderFn),
+        // so no row effect can outlive the keyed instance. Idempotent. Untrack it
+        // from `parent` too so an explicitly-disposed keyed leaves no stale entry
+        // if the caller keeps or re-keys the same parent element.
+        rowOwnerDispose();
+        untrackDisposal(parent, rowOwnerDispose);
     };
 }

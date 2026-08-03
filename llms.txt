@@ -4,7 +4,7 @@
 
 ## Install
 npm i @zakkster/lite-signal-dom
-Peer/runtime dependency: @zakkster/lite-signal ^1.1.0. ESM only. Ships .d.ts.
+Peer dependency: @zakkster/lite-signal ^1.5.0-rc.1 (keyed uses its runWithOwner ownership scope). ESM only. Ships .d.ts.
 
 ## Mental model
 - A "binding" ties one DOM property/attribute/class/style/event to a reactive getter.

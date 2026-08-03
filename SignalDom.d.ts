@@ -7,6 +7,9 @@
  * MutationObserver.
  */
 
+/** Package version constant. In three-place sync with package.json and CHANGELOG.md. */
+export const VERSION: string;
+
 /** A reactive read function, as produced by lite-signal `signal()` / `computed()`. */
 export type Getter<T> = () => T;
 
@@ -21,7 +24,7 @@ export function bindText(node: Node, getter: Getter<unknown>): Dispose;
 
 /**
  * Bind a node's `innerHTML` to a reactive getter.
- * ⚠️ Unsafe — never pass unsanitised user input. Use {@link bindText} instead.
+ * WARNING: Unsafe -- never pass unsanitised user input. Use {@link bindText} instead.
  */
 export function bindHTMLUnsafe(node: Element, getter: Getter<string>): Dispose;
 
@@ -36,7 +39,7 @@ export function bindAttr(
 ): Dispose;
 
 /**
- * Bind a live DOM property (e.g. `value`, `checked`, `selectedIndex`) — not an
+ * Bind a live DOM property (e.g. `value`, `checked`, `selectedIndex`) -- not an
  * attribute. Use for form state.
  */
 export function bindProp(node: Element, prop: string, getter: Getter<unknown>): Dispose;
@@ -83,7 +86,7 @@ export interface KeyedView {
     /** Teardown for this item's own bindings. */
     dispose: Dispose;
     /**
-     * Internal mark-sweep stamp. Owned by `keyed` once the view is returned —
+     * Internal mark-sweep stamp. Owned by `keyed` once the view is returned --
      * do not read or write it.
      * @internal
      */

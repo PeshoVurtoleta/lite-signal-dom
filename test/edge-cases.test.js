@@ -330,7 +330,7 @@ test("keyed: dispose tears down every view, element and the anchor", async () =>
     const list = signal([a, b]);
     const parent = mount(make("ul"));
     const stop = keyed(parent, () => list(), (it) => it.id, row);
-    assert.equal(stats().effects, before + 3, "1 list effect + 2 row effects");
+    assert.equal(stats().effects, before + 4, "1 list effect + 1 stable row-owner + 2 row effects");
 
     stop();
     await flushObserver();
